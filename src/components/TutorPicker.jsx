@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { tutorMatchesQuery } from "../data/tutorSearch";
 import { C, inputStyle } from "../data/theme";
 
 export default function TutorPicker({ tutors, selectedTutorId, onSelectTutor }) {
@@ -8,23 +9,8 @@ export default function TutorPicker({ tutors, selectedTutorId, onSelectTutor }) 
   const selectedTutor =
     tutors.find((tutor) => tutor.id === selectedTutorId) ?? null;
 
-  const normalizedQuery = query.trim().toLowerCase();
-
   const filteredTutors = tutors
-    .filter((tutor) => {
-      if (!normalizedQuery) return true;
-
-      const searchText = [
-        tutor.name,
-        tutor.grades,
-        tutor.location,
-        ...tutor.subjects,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return searchText.includes(normalizedQuery);
-    })
+    .filter((tutor) => tutorMatchesQuery(tutor, query))
     .slice(0, 8);
 
   const chooseTutor = (tutorId) => {
