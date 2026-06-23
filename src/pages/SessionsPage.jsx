@@ -5,6 +5,10 @@ import TutorGroupClassCreator from "../components/TutorGroupClassCreator";
 import WeekCalendar from "../components/WeekCalendar";
 import { bookings, advertisedSessions } from "../data/mockBookings";
 import { availabilityWindows, blockedTimes } from "../data/mockCalendar";
+import {
+  applyAdvertisedSessionBookingOverrides,
+  applyBookingStatusOverrides,
+} from "../data/scheduleUtils";
 import { C } from "../data/theme";
 
 const weekDays = [
@@ -16,19 +20,6 @@ const weekDays = [
   { label: "Sat", date: "2026-06-27" },
   { label: "Sun", date: "2026-06-28" },
 ];
-
-function applyAdvertisedSessionBookingOverrides(sessions, overrides) {
-  return sessions.map((session) => {
-    const extraStudentIds = overrides[session.id] ?? [];
-
-    return {
-      ...session,
-      bookedStudentIds: Array.from(
-        new Set([...(session.bookedStudentIds ?? []), ...extraStudentIds])
-      ),
-    };
-  });
-}
 
 export default function SessionsPage({
   currentUser,
@@ -48,10 +39,10 @@ export default function SessionsPage({
 
   const allBookings = useMemo(
     () =>
-      [...bookings, ...extraBookings].map((booking) => ({
-        ...booking,
-        status: bookingStatusOverrides[booking.id] ?? booking.status,
-      })),
+      applyBookingStatusOverrides(
+        [...bookings, ...extraBookings],
+        bookingStatusOverrides
+      ),
     [extraBookings, bookingStatusOverrides]
   );
 

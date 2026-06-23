@@ -1,5 +1,10 @@
 import { advertisedSessions, bookings } from "./mockBookings";
 import { availabilityWindows, blockedTimes } from "./mockCalendar";
+import {
+  applyBookingStatusOverrides,
+  eventsOverlap,
+  isBlockingEvent,
+} from "./scheduleUtils";
 
 const SLOT_STEP_MINUTES = 30;
 
@@ -28,21 +33,6 @@ function toLocalDateTimeString(date) {
     pad(date.getMinutes()),
     ":00",
   ].join("");
-}
-
-function eventsOverlap(startA, endA, startB, endB) {
-  return startA < endB && endA > startB;
-}
-
-function applyBookingStatusOverrides(bookingsToUpdate, bookingStatusOverrides) {
-  return bookingsToUpdate.map((booking) => ({
-    ...booking,
-    status: bookingStatusOverrides[booking.id] ?? booking.status,
-  }));
-}
-
-function isBlockingEvent(event) {
-  return event.status !== "declined" && event.status !== "cancelled";
 }
 
 export function getAvailableSlotsForTutor({
@@ -95,12 +85,7 @@ export function getAvailableSlotsForTutor({
       const slotEnd = addMinutes(slotStart, durationMinutes);
 
       const hasConflict = busyEvents.some((event) =>
-        eventsOverlap(
-          slotStart,
-          slotEnd,
-          toDate(event.startTime),
-          toDate(event.endTime)
-        )
+        eventsOverlap(slotStart, slotEnd, event.startTime, event.endTime)
       );
 
       if (!hasConflict) {

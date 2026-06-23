@@ -7,50 +7,22 @@ import TutorPicker from "../components/TutorPicker";
 import { getAvailableSlotsForTutor } from "../data/calendarUtils";
 import { advertisedSessions, bookings } from "../data/mockBookings";
 import { tutors } from "../data/mockTutors";
+import {
+  applyAdvertisedSessionBookingOverrides,
+  applyBookingStatusOverrides,
+  getBookedStudentIds,
+  getCapacity,
+  hasTimeClash,
+  isBlockingBooking,
+} from "../data/scheduleUtils";
 import { C } from "../data/theme";
 
-function applyAdvertisedSessionBookingOverrides(sessions, overrides) {
-  return sessions.map((session) => {
-    const extraStudentIds = overrides[session.id] ?? [];
-
-    return {
-      ...session,
-      bookedStudentIds: Array.from(
-        new Set([...(session.bookedStudentIds ?? []), ...extraStudentIds])
-      ),
-    };
-  });
-}
-
-function applyBookingStatusOverrides(bookingsToUpdate, bookingStatusOverrides) {
-  return bookingsToUpdate.map((booking) => ({
-    ...booking,
-    status: bookingStatusOverrides[booking.id] ?? booking.status,
-  }));
-}
-
-function isBlockingBooking(booking) {
-  return booking.status !== "declined" && booking.status !== "cancelled";
-}
-
-function eventsOverlap(startA, endA, startB, endB) {
-  return new Date(startA) < new Date(endB) && new Date(endA) > new Date(startB);
-}
-
-function hasTimeClash(event, busyEvents) {
-  return busyEvents.some((busyEvent) =>
-    eventsOverlap(
-      event.startTime,
-      event.endTime,
-      busyEvent.startTime,
-      busyEvent.endTime
-    )
-  );
-}
-
 function getGroupBookingState(session, currentUser, studentBusyEvents) {
-  const alreadyJoined = session.bookedStudentIds.includes(currentUser.id);
-  const isFull = session.bookedStudentIds.length >= session.capacity;
+  const bookedStudentIds = getBookedStudentIds(session);
+  const capacity = getCapacity(session);
+
+  const alreadyJoined = bookedStudentIds.includes(currentUser.id);
+  const isFull = capacity > 0 && bookedStudentIds.length >= capacity;
 
   if (alreadyJoined) {
     return "joined";
@@ -102,11 +74,11 @@ export default function BookingPage({
   const tutor = tutors.find((item) => item.id === tutorId) ?? null;
 
   const tutorSessionTypes = Array.isArray(tutor?.sessionTypes)
-  ? tutor.sessionTypes
-  : [];
+    ? tutor.sessionTypes
+    : [];
 
   const selectedSession =
-  tutorSessionTypes.find((session) => session.id === selectedSessionId) ?? null;
+    tutorSessionTypes.find((session) => session.id === selectedSessionId) ?? null;
 
   const allBookings = useMemo(
     () =>
@@ -136,7 +108,7 @@ export default function BookingPage({
       .filter(isBlockingBooking);
 
     const joinedGroupSessions = allAdvertisedSessions.filter((session) =>
-      session.bookedStudentIds.includes(currentUser.id)
+      getBookedStudentIds(session).includes(currentUser.id)
     );
 
     return [...studentBookings, ...joinedGroupSessions];
