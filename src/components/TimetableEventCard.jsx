@@ -1,13 +1,8 @@
 import { tutors } from "../data/mockTutors";
-import { users } from "../data/mockUsers";
 import { C } from "../data/theme";
 
 function getTutor(tutorId) {
   return tutors.find((tutor) => tutor.id === tutorId) ?? null;
-}
-
-function getUser(userId) {
-  return users.find((user) => user.id === userId) ?? null;
 }
 
 function getSessionType(tutor, sessionTypeId) {
@@ -39,183 +34,89 @@ function getEventTitle(event, sessionType) {
   return sessionType?.title ?? "Session";
 }
 
+function getTooltipText(event, title) {
+  return `${formatTime(event.startTime)} – ${formatTime(event.endTime)} · ${title} · ${event.status}`;
+}
+
 export default function TimetableEventCard({
   event,
-  currentUser,
-  onUpdateBookingStatus,
-  onRemoveAdvertisedSession,
+  compact = false,
+  onSelectEvent,
 }) {
   const tutor = getTutor(event.tutorId);
   const sessionType = getSessionType(tutor, event.sessionTypeId);
-  const student = event.studentId ? getUser(event.studentId) : null;
-
-  const isGroupSession = event.kind === "group";
-  const isAvailability = event.kind === "availability";
-  const isBlocked = event.kind === "blocked";
-  const isBooking = event.kind === "booking";
-
-  const canTutorManageBooking =
-    currentUser.role === "tutor" &&
-    isBooking &&
-    event.status === "pending" &&
-    typeof onUpdateBookingStatus === "function";
-
-  const canTutorRemoveGroupClass =
-    currentUser.role === "tutor" &&
-    isGroupSession &&
-    event.isUserCreated &&
-    typeof onRemoveAdvertisedSession === "function";
+  const title = getEventTitle(event, sessionType);
+  const color = statusColor(event.status);
 
   return (
-    <div
+    <button
+      type="button"
+      title={getTooltipText(event, title)}
+      onClick={(clickEvent) => {
+        if (typeof onSelectEvent === "function") {
+          onSelectEvent(event, clickEvent.currentTarget.getBoundingClientRect());
+        }
+      }}
       style={{
+        width: "100%",
+        height: "100%",
         background: C.surface,
+        color: C.text,
         border: `1px solid ${C.border}`,
-        borderLeft: `4px solid ${statusColor(event.status)}`,
-        borderRadius: 12,
-        padding: 12,
-        marginTop: 10,
-        opacity: isBlocked ? 0.75 : 1,
+        borderLeft: `4px solid ${color}`,
+        borderRadius: 10,
+        padding: compact ? 6 : 9,
+        textAlign: "left",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        overflow: "hidden",
       }}
     >
-      <div style={{ color: C.white, fontWeight: 900, fontSize: 14 }}>
+      <div
+        style={{
+          color: C.white,
+          fontWeight: 950,
+          fontSize: compact ? 11 : 12,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
         {formatTime(event.startTime)} – {formatTime(event.endTime)}
       </div>
 
-      <div style={{ color: C.text, fontWeight: 800, marginTop: 6 }}>
-        {getEventTitle(event, sessionType)}
+      <div
+        style={{
+          color: C.text,
+          fontWeight: 850,
+          marginTop: 3,
+          fontSize: compact ? 11 : 12,
+          lineHeight: 1.25,
+          display: "-webkit-box",
+          WebkitLineClamp: compact ? 1 : 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {title}
       </div>
-
-      {currentUser.role === "student" && isBooking && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          1-on-1 with {tutor?.name}
-        </div>
-      )}
-
-      {currentUser.role === "student" && isGroupSession && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          Group class with {tutor?.name}
-        </div>
-      )}
-
-      {currentUser.role === "tutor" && isBooking && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          Student: {student?.name ?? event.learnerName ?? "Unknown student"}
-        </div>
-      )}
-
-      {currentUser.role === "tutor" && isGroupSession && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          {event.bookedStudentIds.length}/{event.capacity} learners booked
-        </div>
-      )}
-
-      {isGroupSession && event.pricePerLearner !== undefined && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          Price: R{event.pricePerLearner} per learner
-        </div>
-      )}
-
-      {isAvailability && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          Open teaching window for future bookings
-        </div>
-      )}
-
-      {isBlocked && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          {event.reason}
-        </div>
-      )}
-
-      {event.topic && (
-        <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>
-          Topic: {event.topic}
-        </div>
-      )}
 
       <div
         style={{
           display: "inline-flex",
-          color: statusColor(event.status),
-          background: statusColor(event.status) + "22",
+          color,
+          background: color + "22",
           borderRadius: 999,
-          padding: "3px 8px",
-          fontSize: 11,
+          padding: compact ? "2px 6px" : "3px 7px",
+          fontSize: compact ? 9 : 10,
           fontWeight: 900,
-          marginTop: 8,
+          marginTop: 5,
           textTransform: "capitalize",
+          maxWidth: "100%",
         }}
       >
         {event.status}
       </div>
-
-      {canTutorManageBooking && (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            marginTop: 12,
-          }}
-        >
-          <button
-            onClick={() => onUpdateBookingStatus(event.id, "confirmed")}
-            style={{
-              background: C.green,
-              color: "#000",
-              border: "none",
-              borderRadius: 10,
-              padding: "8px 10px",
-              fontWeight: 900,
-              cursor: "pointer",
-            }}
-          >
-            Accept
-          </button>
-
-          <button
-            onClick={() => onUpdateBookingStatus(event.id, "declined")}
-            style={{
-              background: "transparent",
-              color: "#F87171",
-              border: "1px solid #F87171",
-              borderRadius: 10,
-              padding: "8px 10px",
-              fontWeight: 900,
-              cursor: "pointer",
-            }}
-          >
-            Decline
-          </button>
-        </div>
-      )}
-
-      {canTutorRemoveGroupClass && (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            marginTop: 12,
-          }}
-        >
-          <button
-            onClick={() => onRemoveAdvertisedSession(event.id)}
-            style={{
-              background: "transparent",
-              color: "#F87171",
-              border: "1px solid #F87171",
-              borderRadius: 10,
-              padding: "8px 10px",
-              fontWeight: 900,
-              cursor: "pointer",
-            }}
-          >
-            Remove class
-          </button>
-        </div>
-      )}
-    </div>
+    </button>
   );
 }

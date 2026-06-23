@@ -1,59 +1,135 @@
+import { useState } from "react";
+import EventDetailPopover from "./EventDetailPopover";
 import TimetableEventCard from "./TimetableEventCard";
-import { C } from "../data/theme";
+import { C, inputStyle } from "../data/theme";
 
-const DEFAULT_START_HOUR = 8;
-const DEFAULT_END_HOUR = 20;
+const DEFAULT_START_TIME = "13:00";
+const DEFAULT_END_TIME = "20:00";
+const TIME_STEP_MINUTES = 30;
+
+const zoomSettings = {
+  compact: {
+    label: "Compact",
+    rowHeight: 44,
+  },
+  normal: {
+    label: "Normal",
+    rowHeight: 64,
+  },
+  spacious: {
+    label: "Spacious",
+    rowHeight: 92,
+  },
+};
 
 function pad(value) {
   return String(value).padStart(2, "0");
+}
+
+function timeToMinutes(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${pad(hours)}:${pad(minutes)}`;
+}
+
+function generateTimeOptions() {
+  const options = [];
+
+  for (let minutes = 6 * 60; minutes <= 22 * 60 + 30; minutes += 30) {
+    options.push(minutesToTime(minutes));
+  }
+
+  return options;
+}
+
+function generateTimeSlots(startTime, endTime) {
+  const slots = [];
+  const start = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+
+  for (let minutes = start; minutes < end; minutes += TIME_STEP_MINUTES) {
+    slots.push(minutesToTime(minutes));
+  }
+
+  return slots;
 }
 
 function getDateKey(dateTime) {
   return typeof dateTime === "string" ? dateTime.slice(0, 10) : "";
 }
 
-function getHourFromDateTime(dateTime) {
+function getMinutesFromDateTime(dateTime) {
   const date = new Date(dateTime);
 
   if (Number.isNaN(date.getTime())) {
     return null;
   }
 
-  return date.getHours();
+  return date.getHours() * 60 + date.getMinutes();
 }
 
-function getHourKey(dateTime) {
-  const hour = getHourFromDateTime(dateTime);
+function sortEventsForLayering(events) {
+  return [...events].sort((a, b) => {
+    const layerDifference = getEventLayer(a) - getEventLayer(b);
 
-  if (hour === null) {
-    return "";
-  }
-
-  return `${pad(hour)}:00`;
-}
-
-function getTimeSlots(events) {
-  const hours = new Set();
-
-  for (let hour = DEFAULT_START_HOUR; hour <= DEFAULT_END_HOUR; hour += 1) {
-    hours.add(hour);
-  }
-
-  events.forEach((event) => {
-    const hour = getHourFromDateTime(event.startTime);
-
-    if (hour !== null) {
-      hours.add(hour);
+    if (layerDifference !== 0) {
+      return layerDifference;
     }
-  });
 
-  return [...hours]
-    .sort((a, b) => a - b)
-    .map((hour) => `${pad(hour)}:00`);
+    return a.startTime.localeCompare(b.startTime);
+  });
 }
 
-function sortByStartTime(events) {
-  return [...events].sort((a, b) => a.startTime.localeCompare(b.startTime));
+function getEventLayer(event) {
+  if (event.kind === "availability") return 1;
+  if (event.kind === "blocked") return 2;
+  if (event.kind === "group") return 3;
+  if (event.kind === "booking") return 4;
+  return 2;
+}
+
+function eventOverlapsWindow(event, startTime, endTime) {
+  const eventStart = getMinutesFromDateTime(event.startTime);
+  const eventEnd = getMinutesFromDateTime(event.endTime);
+  const windowStart = timeToMinutes(startTime);
+  const windowEnd = timeToMinutes(endTime);
+
+  if (eventStart === null || eventEnd === null) {
+    return false;
+  }
+
+  return eventStart < windowEnd && eventEnd > windowStart;
+}
+
+function getEventGridPosition(event, startTime, endTime) {
+  const eventStart = getMinutesFromDateTime(event.startTime);
+  const eventEnd = getMinutesFromDateTime(event.endTime);
+  const windowStart = timeToMinutes(startTime);
+  const windowEnd = timeToMinutes(endTime);
+
+  if (eventStart === null || eventEnd === null) {
+    return null;
+  }
+
+  const clippedStart = Math.max(eventStart, windowStart);
+  const clippedEnd = Math.min(eventEnd, windowEnd);
+
+  const startOffset = clippedStart - windowStart;
+  const duration = Math.max(clippedEnd - clippedStart, TIME_STEP_MINUTES);
+
+  const rowStart = Math.floor(startOffset / TIME_STEP_MINUTES) + 2;
+  const rowSpan = Math.max(1, Math.ceil(duration / TIME_STEP_MINUTES));
+
+  return {
+    rowStart,
+    rowSpan,
+  };
 }
 
 export default function WeekCalendar({
@@ -63,122 +139,306 @@ export default function WeekCalendar({
   onUpdateBookingStatus,
   onRemoveAdvertisedSession,
 }) {
-  const timeSlots = getTimeSlots(visibleEvents);
+  const [startTime, setStartTime] = useState(DEFAULT_START_TIME);
+  const [endTime, setEndTime] = useState(DEFAULT_END_TIME);
+  const [zoom, setZoom] = useState("compact");
+  const [selectedEventInfo, setSelectedEventInfo] = useState(null);
+
+  const timeOptions = generateTimeOptions();
+  const timeSlots = generateTimeSlots(startTime, endTime);
+  const rowHeight = zoomSettings[zoom].rowHeight;
+
+  const eventsInsideWindow = sortEventsForLayering(
+    visibleEvents.filter((event) => eventOverlapsWindow(event, startTime, endTime))
+  );
+
+  const eventsOutsideWindow = visibleEvents.filter(
+    (event) => !eventOverlapsWindow(event, startTime, endTime)
+  );
+
+  const updateStartTime = (value) => {
+    setStartTime(value);
+
+    if (timeToMinutes(endTime) <= timeToMinutes(value)) {
+      setEndTime(minutesToTime(timeToMinutes(value) + 60));
+    }
+  };
+
+  const updateEndTime = (value) => {
+    if (timeToMinutes(value) > timeToMinutes(startTime)) {
+      setEndTime(value);
+    }
+  };
+
+  const endTimeOptions = timeOptions.filter(
+    (option) => timeToMinutes(option) > timeToMinutes(startTime)
+  );
 
   return (
-    <div
-      style={{
-        overflowX: "auto",
-        border: `1px solid ${C.border}`,
-        borderRadius: 16,
-        background: C.bg,
-      }}
-    >
+    <div>
       <div
         style={{
-          minWidth: 980,
-          display: "grid",
-          gridTemplateColumns: `84px repeat(${weekDays.length}, minmax(120px, 1fr))`,
+          display: "flex",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "end",
+          marginBottom: 14,
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 14,
+          padding: 14,
+        }}
+      >
+        <div>
+          <label
+            style={{
+              display: "block",
+              color: C.white,
+              fontWeight: 900,
+              fontSize: 13,
+              marginBottom: 6,
+            }}
+          >
+            Start time
+          </label>
+
+          <select
+            value={startTime}
+            onChange={(event) => updateStartTime(event.target.value)}
+            style={{
+              ...inputStyle,
+              padding: "9px 10px",
+              cursor: "pointer",
+            }}
+          >
+            {timeOptions.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label
+            style={{
+              display: "block",
+              color: C.white,
+              fontWeight: 900,
+              fontSize: 13,
+              marginBottom: 6,
+            }}
+          >
+            End time
+          </label>
+
+          <select
+            value={endTime}
+            onChange={(event) => updateEndTime(event.target.value)}
+            style={{
+              ...inputStyle,
+              padding: "9px 10px",
+              cursor: "pointer",
+            }}
+          >
+            {endTimeOptions.map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label
+            style={{
+              display: "block",
+              color: C.white,
+              fontWeight: 900,
+              fontSize: 13,
+              marginBottom: 6,
+            }}
+          >
+            Zoom
+          </label>
+
+          <select
+            value={zoom}
+            onChange={(event) => setZoom(event.target.value)}
+            style={{
+              ...inputStyle,
+              padding: "9px 10px",
+              cursor: "pointer",
+            }}
+          >
+            {Object.entries(zoomSettings).map(([key, value]) => (
+              <option key={key} value={key}>
+                {value.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div
+          style={{
+            color: C.muted,
+            fontSize: 13,
+            lineHeight: 1.5,
+            maxWidth: 420,
+          }}
+        >
+          Showing {startTime}–{endTime} in 30-minute blocks.
+          {eventsOutsideWindow.length > 0 && (
+            <>
+              {" "}
+              {eventsOutsideWindow.length} item
+              {eventsOutsideWindow.length === 1 ? "" : "s"} outside this window.
+            </>
+          )}
+        </div>
+      </div>
+
+      <div
+        style={{
+          border: `1px solid ${C.border}`,
+          borderRadius: 16,
+          background: C.bg,
+          overflow: "visible",
         }}
       >
         <div
           style={{
-            position: "sticky",
-            left: 0,
-            zIndex: 3,
-            background: C.bg,
-            borderRight: `1px solid ${C.border}`,
-            borderBottom: `1px solid ${C.border}`,
-            padding: 12,
-            color: C.muted,
-            fontSize: 12,
-            fontWeight: 900,
+            display: "grid",
+            gridTemplateColumns: `76px repeat(${weekDays.length}, minmax(0, 1fr))`,
+            gridTemplateRows: `58px repeat(${timeSlots.length}, ${rowHeight}px)`,
+            width: "100%",
           }}
         >
-          Time
-        </div>
-
-        {weekDays.map((day) => (
           <div
-            key={day.date}
             style={{
-              background: C.surface,
-              borderBottom: `1px solid ${C.border}`,
+              gridColumn: 1,
+              gridRow: 1,
+              background: C.bg,
               borderRight: `1px solid ${C.border}`,
+              borderBottom: `1px solid ${C.border}`,
               padding: 12,
-              minHeight: 58,
+              color: C.muted,
+              fontSize: 12,
+              fontWeight: 900,
             }}
           >
-            <div style={{ color: C.white, fontWeight: 950 }}>{day.label}</div>
-            <div style={{ color: C.muted, fontSize: 12 }}>{day.date}</div>
+            Time
           </div>
-        ))}
 
-        {timeSlots.map((timeSlot) => (
-          <>
+          {weekDays.map((day, dayIndex) => (
+            <div
+              key={day.date}
+              style={{
+                gridColumn: dayIndex + 2,
+                gridRow: 1,
+                background: C.surface,
+                borderBottom: `1px solid ${C.border}`,
+                borderRight: `1px solid ${C.border}`,
+                padding: 12,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ color: C.white, fontWeight: 950 }}>{day.label}</div>
+              <div style={{ color: C.muted, fontSize: 12 }}>{day.date}</div>
+            </div>
+          ))}
+
+          {timeSlots.map((timeSlot, slotIndex) => (
             <div
               key={`${timeSlot}-label`}
               style={{
-                position: "sticky",
-                left: 0,
-                zIndex: 2,
+                gridColumn: 1,
+                gridRow: slotIndex + 2,
                 background: C.bg,
                 borderRight: `1px solid ${C.border}`,
                 borderBottom: `1px solid ${C.border}`,
-                padding: "12px 10px",
+                padding: "8px 6px",
                 color: C.muted,
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 900,
-                minHeight: 96,
               }}
             >
               {timeSlot}
             </div>
+          ))}
 
-            {weekDays.map((day) => {
-              const cellEvents = sortByStartTime(
-                visibleEvents.filter(
-                  (event) =>
-                    getDateKey(event.startTime) === day.date &&
-                    getHourKey(event.startTime) === timeSlot
-                )
-              );
+          {timeSlots.map((timeSlot, slotIndex) =>
+            weekDays.map((day, dayIndex) => (
+              <div
+                key={`${day.date}-${timeSlot}`}
+                style={{
+                  gridColumn: dayIndex + 2,
+                  gridRow: slotIndex + 2,
+                  borderRight: `1px solid ${C.border}`,
+                  borderBottom: `1px solid ${C.border}`,
+                  background: "rgba(255,255,255,0.01)",
+                  minWidth: 0,
+                }}
+              />
+            ))
+          )}
 
-              return (
+          {eventsInsideWindow.map((event) => {
+            const dayIndex = weekDays.findIndex(
+              (day) => day.date === getDateKey(event.startTime)
+            );
+
+            if (dayIndex === -1) {
+              return null;
+            }
+
+            const position = getEventGridPosition(event, startTime, endTime);
+
+            if (!position) {
+              return null;
+            }
+
+            return (
+              <div
+                key={event.id}
+                style={{
+                  gridColumn: dayIndex + 2,
+                  gridRow: `${position.rowStart} / span ${position.rowSpan}`,
+                  zIndex: getEventLayer(event),
+                  padding: zoom === "compact" ? 3 : 5,
+                  minWidth: 0,
+                  overflow: "hidden",
+                }}
+              >
                 <div
-                  key={`${day.date}-${timeSlot}`}
                   style={{
-                    borderRight: `1px solid ${C.border}`,
-                    borderBottom: `1px solid ${C.border}`,
-                    padding: 8,
-                    minHeight: 96,
-                    background:
-                      cellEvents.length > 0 ? C.card : "rgba(255,255,255,0.01)",
+                    height: "100%",
+                    overflow: "hidden",
                   }}
                 >
-                  {cellEvents.length > 0 ? (
-                    cellEvents.map((event) => (
-                      <TimetableEventCard
-                        key={event.id}
-                        event={event}
-                        currentUser={currentUser}
-                        onUpdateBookingStatus={onUpdateBookingStatus}
-                        onRemoveAdvertisedSession={onRemoveAdvertisedSession}
-                      />
-                    ))
-                  ) : (
-                    <div
-                      style={{
-                        height: "100%",
-                        minHeight: 72,
-                      }}
+                  <TimetableEventCard
+                    event={event}
+                    currentUser={currentUser}
+                    compact={zoom === "compact"}
+                    onSelectEvent={(event, anchorRect) =>
+                     setSelectedEventInfo({ event, anchorRect })
+                     }
+                  />
+                  {selectedEventInfo && (
+                    <EventDetailPopover
+                    event={selectedEventInfo.event}
+                    anchorRect={selectedEventInfo.anchorRect}
+                    currentUser={currentUser}
+                    onClose={() => setSelectedEventInfo(null)}
+                    onUpdateBookingStatus={onUpdateBookingStatus}
+                    onRemoveAdvertisedSession={onRemoveAdvertisedSession}
                     />
                   )}
                 </div>
-              );
-            })}
-          </>
-        ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
