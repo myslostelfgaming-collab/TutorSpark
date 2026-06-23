@@ -13,6 +13,8 @@ function App() {
   const [page, setPage] = useState("home");
   const [selectedTutorId, setSelectedTutorId] = useState(null);
   const [extraBookings, setExtraBookings] = useState([]);
+  const [extraAvailabilityWindows, setExtraAvailabilityWindows] = useState([]);
+  const [extraBlockedTimes, setExtraBlockedTimes] = useState([]);
   const [bookingStatusOverrides, setBookingStatusOverrides] = useState({});
   const [currentUserId, setCurrentUserId] = useState(defaultCurrentUserId);
 
@@ -70,6 +72,20 @@ function App() {
     }));
   };
 
+  const addAvailabilityWindow = (availabilityWindow) => {
+    setExtraAvailabilityWindows((currentWindows) => [
+      availabilityWindow,
+      ...currentWindows,
+    ]);
+  };
+
+  const addBlockedTime = (blockedTime) => {
+    setExtraBlockedTimes((currentBlockedTimes) => [
+      blockedTime,
+      ...currentBlockedTimes,
+    ]);
+  };
+
   const pages = {
     home: (
       <HomePage
@@ -92,6 +108,8 @@ function App() {
         onSelectTutor={setSelectedTutorId}
         setPage={setPage}
         extraBookings={extraBookings}
+        extraAvailabilityWindows={extraAvailabilityWindows}
+        extraBlockedTimes={extraBlockedTimes}
         bookingStatusOverrides={bookingStatusOverrides}
         onRequestBooking={requestBooking}
       />
@@ -100,8 +118,12 @@ function App() {
       <SessionsPage
         currentUser={currentUser}
         extraBookings={extraBookings}
+        extraAvailabilityWindows={extraAvailabilityWindows}
+        extraBlockedTimes={extraBlockedTimes}
         bookingStatusOverrides={bookingStatusOverrides}
         onUpdateBookingStatus={updateBookingStatus}
+        onAddAvailabilityWindow={addAvailabilityWindow}
+        onAddBlockedTime={addBlockedTime}
       />
     ),
   };

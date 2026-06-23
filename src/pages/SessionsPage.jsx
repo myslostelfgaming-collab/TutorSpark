@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import TutorCalendarEditor from "../components/TutorCalendarEditor";
 import { bookings, advertisedSessions } from "../data/mockBookings";
 import { availabilityWindows, blockedTimes } from "../data/mockCalendar";
 import { tutors } from "../data/mockTutors";
@@ -200,8 +201,12 @@ function TimetableEventCard({
 export default function SessionsPage({
   currentUser,
   extraBookings = [],
+  extraAvailabilityWindows = [],
+  extraBlockedTimes = [],
   bookingStatusOverrides = {},
   onUpdateBookingStatus,
+  onAddAvailabilityWindow,
+  onAddBlockedTime,
 }) {
   const [calendarView, setCalendarView] = useState("week");
 
@@ -212,6 +217,16 @@ export default function SessionsPage({
         status: bookingStatusOverrides[booking.id] ?? booking.status,
       })),
     [extraBookings, bookingStatusOverrides]
+  );
+
+  const allAvailabilityWindows = useMemo(
+    () => [...availabilityWindows, ...extraAvailabilityWindows],
+    [extraAvailabilityWindows]
+  );
+
+  const allBlockedTimes = useMemo(
+    () => [...blockedTimes, ...extraBlockedTimes],
+    [extraBlockedTimes]
   );
 
   const visibleEvents = useMemo(() => {
@@ -250,14 +265,14 @@ export default function SessionsPage({
           kind: "group",
         }));
 
-      const tutorAvailability = availabilityWindows
+      const tutorAvailability = allAvailabilityWindows
         .filter((window) => window.tutorId === currentUser.tutorId)
         .map((window) => ({
           ...window,
           kind: "availability",
         }));
 
-      const tutorBlockedTimes = blockedTimes
+      const tutorBlockedTimes = allBlockedTimes
         .filter((blocked) => blocked.tutorId === currentUser.tutorId)
         .map((blocked) => ({
           ...blocked,
@@ -273,7 +288,7 @@ export default function SessionsPage({
     }
 
     return [];
-  }, [currentUser, allBookings]);
+  }, [currentUser, allBookings, allAvailabilityWindows, allBlockedTimes]);
 
   return (
     <section>
@@ -354,6 +369,14 @@ export default function SessionsPage({
           </div>
         )}
       </div>
+
+      {currentUser.role === "tutor" && (
+        <TutorCalendarEditor
+          currentUser={currentUser}
+          onAddAvailabilityWindow={onAddAvailabilityWindow}
+          onAddBlockedTime={onAddBlockedTime}
+        />
+      )}
 
       <div
         style={{

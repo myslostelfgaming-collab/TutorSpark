@@ -16,6 +16,8 @@ export default function BookingPage({
   onSelectTutor,
   setPage,
   extraBookings,
+  extraAvailabilityWindows,
+  extraBlockedTimes,
   bookingStatusOverrides,
   onRequestBooking,
 }) {
@@ -41,9 +43,18 @@ export default function BookingPage({
       tutorId: tutor.id,
       durationMinutes: selectedSession.durationMinutes,
       extraBookings,
+      extraAvailabilityWindows,
+      extraBlockedTimes,
       bookingStatusOverrides,
     });
-  }, [tutor, selectedSession, extraBookings]);
+  }, [
+    tutor,
+    selectedSession,
+    extraBookings,
+    extraAvailabilityWindows,
+    extraBlockedTimes,
+    bookingStatusOverrides,
+  ]);
 
   const selectedSlot =
     availableSlots.find((slot) => slot.id === selectedSlotId) ?? null;
