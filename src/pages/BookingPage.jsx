@@ -16,6 +16,7 @@ export default function BookingPage({
   onSelectTutor,
   setPage,
   extraBookings,
+  bookingStatusOverrides,
   onRequestBooking,
 }) {
   const [selectedSessionId, setSelectedSessionId] = useState("");
@@ -40,6 +41,7 @@ export default function BookingPage({
       tutorId: tutor.id,
       durationMinutes: selectedSession.durationMinutes,
       extraBookings,
+      bookingStatusOverrides,
     });
   }, [tutor, selectedSession, extraBookings]);
 

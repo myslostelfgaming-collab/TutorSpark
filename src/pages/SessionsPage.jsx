@@ -43,6 +43,8 @@ function statusColor(status) {
   if (status === "pending") return C.spark;
   if (status === "advertised") return C.blue;
   if (status === "available") return C.green;
+  if (status === "declined") return "#F87171";
+  if (status === "cancelled") return "#F87171";
   if (status === "blocked") return C.muted;
   return C.muted;
 }
@@ -54,7 +56,11 @@ function getEventTitle(event, sessionType) {
   return sessionType?.title ?? "Session";
 }
 
-function TimetableEventCard({ event, currentUser }) {
+function TimetableEventCard({
+  event,
+  currentUser,
+  onUpdateBookingStatus,
+}) {
   const tutor = getTutor(event.tutorId);
   const sessionType = getSessionType(tutor, event.sessionTypeId);
   const student = event.studentId ? getUser(event.studentId) : null;
@@ -63,6 +69,11 @@ function TimetableEventCard({ event, currentUser }) {
   const isAvailability = event.kind === "availability";
   const isBlocked = event.kind === "blocked";
   const isBooking = event.kind === "booking";
+
+  const canTutorManageBooking =
+    currentUser.role === "tutor" &&
+    isBooking &&
+    event.status === "pending";
 
   return (
     <div
@@ -141,16 +152,66 @@ function TimetableEventCard({ event, currentUser }) {
       >
         {event.status}
       </div>
+
+      {canTutorManageBooking && (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            marginTop: 12,
+          }}
+        >
+          <button
+            onClick={() => onUpdateBookingStatus(event.id, "confirmed")}
+            style={{
+              background: C.green,
+              color: "#000",
+              border: "none",
+              borderRadius: 10,
+              padding: "8px 10px",
+              fontWeight: 900,
+              cursor: "pointer",
+            }}
+          >
+            Accept
+          </button>
+
+          <button
+            onClick={() => onUpdateBookingStatus(event.id, "declined")}
+            style={{
+              background: "transparent",
+              color: "#F87171",
+              border: "1px solid #F87171",
+              borderRadius: 10,
+              padding: "8px 10px",
+              fontWeight: 900,
+              cursor: "pointer",
+            }}
+          >
+            Decline
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function SessionsPage({ currentUser, extraBookings = [] }) {
+export default function SessionsPage({
+  currentUser,
+  extraBookings = [],
+  bookingStatusOverrides = {},
+  onUpdateBookingStatus,
+}) {
   const [calendarView, setCalendarView] = useState("week");
 
   const allBookings = useMemo(
-    () => [...bookings, ...extraBookings],
-    [extraBookings]
+    () =>
+      [...bookings, ...extraBookings].map((booking) => ({
+        ...booking,
+        status: bookingStatusOverrides[booking.id] ?? booking.status,
+      })),
+    [extraBookings, bookingStatusOverrides]
   );
 
   const visibleEvents = useMemo(() => {
@@ -288,6 +349,7 @@ export default function SessionsPage({ currentUser, extraBookings = [] }) {
             <span style={{ color: C.green }}>● Available</span>
             <span style={{ color: C.blue }}>● Group class</span>
             <span style={{ color: C.spark }}>● Pending</span>
+            <span style={{ color: "#F87171" }}>● Declined</span>
             <span style={{ color: C.muted }}>● Blocked</span>
           </div>
         )}
@@ -375,6 +437,7 @@ export default function SessionsPage({ currentUser, extraBookings = [] }) {
                       key={event.id}
                       event={event}
                       currentUser={currentUser}
+                      onUpdateBookingStatus={onUpdateBookingStatus}
                     />
                   ))
                 ) : (

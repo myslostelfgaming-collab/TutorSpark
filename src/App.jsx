@@ -13,6 +13,7 @@ function App() {
   const [page, setPage] = useState("home");
   const [selectedTutorId, setSelectedTutorId] = useState(null);
   const [extraBookings, setExtraBookings] = useState([]);
+  const [bookingStatusOverrides, setBookingStatusOverrides] = useState({});
   const [currentUserId, setCurrentUserId] = useState(defaultCurrentUserId);
 
   const currentUser =
@@ -56,6 +57,19 @@ function App() {
     setPage("sessions");
   };
 
+  const updateBookingStatus = (bookingId, status) => {
+    setExtraBookings((currentBookings) =>
+      currentBookings.map((booking) =>
+        booking.id === bookingId ? { ...booking, status } : booking
+      )
+    );
+
+    setBookingStatusOverrides((currentOverrides) => ({
+      ...currentOverrides,
+      [bookingId]: status,
+    }));
+  };
+
   const pages = {
     home: (
       <HomePage
@@ -78,6 +92,7 @@ function App() {
         onSelectTutor={setSelectedTutorId}
         setPage={setPage}
         extraBookings={extraBookings}
+        bookingStatusOverrides={bookingStatusOverrides}
         onRequestBooking={requestBooking}
       />
     ),
@@ -85,6 +100,8 @@ function App() {
       <SessionsPage
         currentUser={currentUser}
         extraBookings={extraBookings}
+        bookingStatusOverrides={bookingStatusOverrides}
+        onUpdateBookingStatus={updateBookingStatus}
       />
     ),
   };

@@ -34,21 +34,39 @@ function eventsOverlap(startA, endA, startB, endB) {
   return startA < endB && endA > startB;
 }
 
+function applyBookingStatusOverrides(bookingsToUpdate, bookingStatusOverrides) {
+  return bookingsToUpdate.map((booking) => ({
+    ...booking,
+    status: bookingStatusOverrides[booking.id] ?? booking.status,
+  }));
+}
+
+function isBlockingEvent(event) {
+  return event.status !== "declined" && event.status !== "cancelled";
+}
+
 export function getAvailableSlotsForTutor({
   tutorId,
   durationMinutes,
   extraBookings = [],
+  bookingStatusOverrides = {},
 }) {
   const tutorAvailability = availabilityWindows.filter(
     (window) => window.tutorId === tutorId
   );
 
+  const allBookings = applyBookingStatusOverrides(
+    [...bookings, ...extraBookings],
+    bookingStatusOverrides
+  );
+
   const busyEvents = [
     ...blockedTimes,
-    ...bookings,
-    ...extraBookings,
+    ...allBookings,
     ...advertisedSessions,
-  ].filter((event) => event.tutorId === tutorId);
+  ]
+    .filter((event) => event.tutorId === tutorId)
+    .filter(isBlockingEvent);
 
   const slots = [];
 
