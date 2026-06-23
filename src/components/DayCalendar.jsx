@@ -5,8 +5,45 @@ function getDateKey(dateTime) {
   return typeof dateTime === "string" ? dateTime.slice(0, 10) : "";
 }
 
+function parseDateKey(dateKey) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+
+  return new Date(year, month - 1, day);
+}
+
+function pad(value) {
+  return String(value).padStart(2, "0");
+}
+
+function toDateKey(date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}`;
+}
+
+function addDays(dateKey, amount) {
+  const date = parseDateKey(dateKey);
+  date.setDate(date.getDate() + amount);
+
+  return toDateKey(date);
+}
+
+function getDayLabel(dateKey) {
+  return parseDateKey(dateKey).toLocaleDateString([], {
+    weekday: "short",
+  });
+}
+
+function getReadableDate(dateKey) {
+  return parseDateKey(dateKey).toLocaleDateString([], {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function DayCalendar({
-  weekDays,
   selectedDate,
   onSelectedDateChange,
   visibleEvents,
@@ -14,28 +51,14 @@ export default function DayCalendar({
   onUpdateBookingStatus,
   onRemoveAdvertisedSession,
 }) {
-  const selectedDay =
-    weekDays.find((day) => day.date === selectedDate) ?? weekDays[0];
-
-  const selectedDayIndex = weekDays.findIndex(
-    (day) => day.date === selectedDay.date
-  );
+  const selectedDay = {
+    label: getDayLabel(selectedDate),
+    date: selectedDate,
+  };
 
   const dayEvents = visibleEvents.filter(
-    (event) => getDateKey(event.startTime) === selectedDay.date
+    (event) => getDateKey(event.startTime) === selectedDate
   );
-
-  const goToPreviousDay = () => {
-    if (selectedDayIndex > 0) {
-      onSelectedDateChange(weekDays[selectedDayIndex - 1].date);
-    }
-  };
-
-  const goToNextDay = () => {
-    if (selectedDayIndex < weekDays.length - 1) {
-      onSelectedDateChange(weekDays[selectedDayIndex + 1].date);
-    }
-  };
 
   return (
     <div>
@@ -65,26 +88,20 @@ export default function DayCalendar({
             Day
           </label>
 
-          <select
-            value={selectedDay.date}
+          <input
+            type="date"
+            value={selectedDate}
             onChange={(event) => onSelectedDateChange(event.target.value)}
             style={{
               ...inputStyle,
               padding: "9px 10px",
               cursor: "pointer",
             }}
-          >
-            {weekDays.map((day) => (
-              <option key={day.date} value={day.date}>
-                {day.label} · {day.date}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         <button
-          onClick={goToPreviousDay}
-          disabled={selectedDayIndex <= 0}
+          onClick={() => onSelectedDateChange(addDays(selectedDate, -1))}
           style={{
             background: C.card,
             color: C.text,
@@ -92,16 +109,14 @@ export default function DayCalendar({
             borderRadius: 10,
             padding: "10px 12px",
             fontWeight: 900,
-            cursor: selectedDayIndex <= 0 ? "not-allowed" : "pointer",
-            opacity: selectedDayIndex <= 0 ? 0.45 : 1,
+            cursor: "pointer",
           }}
         >
           ← Previous
         </button>
 
         <button
-          onClick={goToNextDay}
-          disabled={selectedDayIndex >= weekDays.length - 1}
+          onClick={() => onSelectedDateChange(addDays(selectedDate, 1))}
           style={{
             background: C.card,
             color: C.text,
@@ -109,9 +124,7 @@ export default function DayCalendar({
             borderRadius: 10,
             padding: "10px 12px",
             fontWeight: 900,
-            cursor:
-              selectedDayIndex >= weekDays.length - 1 ? "not-allowed" : "pointer",
-            opacity: selectedDayIndex >= weekDays.length - 1 ? 0.45 : 1,
+            cursor: "pointer",
           }}
         >
           Next →
@@ -122,10 +135,10 @@ export default function DayCalendar({
             color: C.muted,
             fontSize: 13,
             lineHeight: 1.5,
-            maxWidth: 360,
+            maxWidth: 390,
           }}
         >
-          Showing {selectedDay.label}, {selectedDay.date}. {dayEvents.length} item
+          Showing {getReadableDate(selectedDate)}. {dayEvents.length} item
           {dayEvents.length === 1 ? "" : "s"} for {currentUser.name}.
         </div>
       </div>

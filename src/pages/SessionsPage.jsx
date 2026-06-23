@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import CalendarViewToggle from "../components/CalendarViewToggle";
 import DayCalendar from "../components/DayCalendar";
+import MonthCalendar from "../components/MonthCalendar";
 import TutorCalendarEditor from "../components/TutorCalendarEditor";
 import TutorGroupClassCreator from "../components/TutorGroupClassCreator";
 import WeekCalendar from "../components/WeekCalendar";
@@ -247,7 +248,6 @@ export default function SessionsPage({
 
         {calendarView === "day" && (
           <DayCalendar
-            weekDays={weekDays}
             selectedDate={selectedDate}
             onSelectedDateChange={setSelectedDate}
             visibleEvents={visibleEvents}
@@ -258,21 +258,20 @@ export default function SessionsPage({
         )}
 
         {calendarView === "month" && (
-          <div
-            style={{
-              background: C.surface,
-              border: `1px dashed ${C.border}`,
-              borderRadius: 14,
-              padding: 16,
-              color: C.muted,
-              lineHeight: 1.6,
+          <MonthCalendar
+            selectedDate={selectedDate}
+            onSelectedDateChange={setSelectedDate}
+            onOpenDay={(date) => {
+            setSelectedDate(date);
+            setCalendarView("day");
             }}
-          >
-            Month view is next. Week and Day views are now functional because
-            they are the most important for tutor scheduling.
-          </div>
+            visibleEvents={visibleEvents}
+            currentUser={currentUser}
+            onUpdateBookingStatus={onUpdateBookingStatus}
+            onRemoveAdvertisedSession={onRemoveAdvertisedSession}
+          />
         )}
-      </div>
+       </div>
     </section>
   );
 }
