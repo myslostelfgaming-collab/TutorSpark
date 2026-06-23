@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import CalendarViewToggle from "../components/CalendarViewToggle";
+import DayCalendar from "../components/DayCalendar";
 import TutorCalendarEditor from "../components/TutorCalendarEditor";
 import TutorGroupClassCreator from "../components/TutorGroupClassCreator";
 import WeekCalendar from "../components/WeekCalendar";
@@ -36,6 +37,7 @@ export default function SessionsPage({
   onRemoveAdvertisedSession,
 }) {
   const [calendarView, setCalendarView] = useState("week");
+  const [selectedDate, setSelectedDate] = useState("2026-06-23");
 
   const allBookings = useMemo(
     () =>
@@ -233,7 +235,29 @@ export default function SessionsPage({
           </div>
         </div>
 
-        {calendarView !== "week" && (
+        {calendarView === "week" && (
+          <WeekCalendar
+            weekDays={weekDays}
+            visibleEvents={visibleEvents}
+            currentUser={currentUser}
+            onUpdateBookingStatus={onUpdateBookingStatus}
+            onRemoveAdvertisedSession={onRemoveAdvertisedSession}
+          />
+        )}
+
+        {calendarView === "day" && (
+          <DayCalendar
+            weekDays={weekDays}
+            selectedDate={selectedDate}
+            onSelectedDateChange={setSelectedDate}
+            visibleEvents={visibleEvents}
+            currentUser={currentUser}
+            onUpdateBookingStatus={onUpdateBookingStatus}
+            onRemoveAdvertisedSession={onRemoveAdvertisedSession}
+          />
+        )}
+
+        {calendarView === "month" && (
           <div
             style={{
               background: C.surface,
@@ -241,23 +265,13 @@ export default function SessionsPage({
               borderRadius: 14,
               padding: 16,
               color: C.muted,
-              marginBottom: 16,
               lineHeight: 1.6,
             }}
           >
-            {calendarView.charAt(0).toUpperCase() + calendarView.slice(1)} view
-            is planned. The week view is functional first because it is the most
-            useful for tutoring.
+            Month view is next. Week and Day views are now functional because
+            they are the most important for tutor scheduling.
           </div>
         )}
-
-        <WeekCalendar
-          weekDays={weekDays}
-          visibleEvents={visibleEvents}
-          currentUser={currentUser}
-          onUpdateBookingStatus={onUpdateBookingStatus}
-          onRemoveAdvertisedSession={onRemoveAdvertisedSession}
-        />
       </div>
     </section>
   );
