@@ -1,4 +1,8 @@
 import { useState } from "react";
+import Avatar from "./components/Avatar";
+import Pill from "./components/Pill";
+import NavButton from "./components/NavButton";
+import { tutors } from "./data/mockTutors";
 
 const C = {
   bg: "#080810",
@@ -14,98 +18,15 @@ const C = {
   white: "#FFFFFF",
 };
 
-const tutors = [
-  {
-    id: 1,
-    name: "Dr. Amara Osei",
-    initials: "AO",
-    subjects: ["Mathematics", "Calculus"],
-    grades: "Grade 10–12",
-    rating: 4.9,
-    price: 220,
-    location: "Online",
-    color: C.spark,
-  },
-  {
-    id: 2,
-    name: "Priya Nair",
-    initials: "PN",
-    subjects: ["Physical Sciences", "Chemistry"],
-    grades: "Grade 10–12",
-    rating: 4.8,
-    price: 200,
-    location: "Online / Pretoria",
-    color: C.green,
-  },
-  {
-    id: 3,
-    name: "Lucas Ferreira",
-    initials: "LF",
-    subjects: ["Afrikaans", "English"],
-    grades: "Grade 7–12",
-    rating: 4.7,
-    price: 180,
-    location: "Online",
-    color: C.blue,
-  },
-];
-
-function Avatar({ initials, color }) {
-  return (
-    <div
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: "50%",
-        background: color + "25",
-        border: `2px solid ${color}`,
-        color,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 900,
-      }}
-    >
-      {initials}
-    </div>
-  );
-}
-
-function Pill({ children, color = C.violet }) {
-  return (
-    <span
-      style={{
-        background: color + "22",
-        color,
-        fontSize: 11,
-        fontWeight: 700,
-        padding: "4px 9px",
-        borderRadius: 999,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function NavButton({ label, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: active ? C.spark : C.card,
-        color: active ? "#000" : C.text,
-        border: `1px solid ${active ? C.spark : C.border}`,
-        borderRadius: 12,
-        padding: "10px 14px",
-        fontWeight: 800,
-        cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
-  );
-}
+const inputStyle = {
+  background: C.surface,
+  color: C.text,
+  border: `1px solid ${C.border}`,
+  borderRadius: 10,
+  padding: "12px 14px",
+  fontSize: 14,
+  fontFamily: "inherit",
+};
 
 function HomePage({ setPage }) {
   return (
@@ -406,16 +327,6 @@ function SessionsPage() {
   );
 }
 
-const inputStyle = {
-  background: C.surface,
-  color: C.text,
-  border: `1px solid ${C.border}`,
-  borderRadius: 10,
-  padding: "12px 14px",
-  fontSize: 14,
-  fontFamily: "inherit",
-};
-
 function App() {
   const [page, setPage] = useState("home");
 
@@ -463,10 +374,26 @@ function App() {
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <NavButton label="Home" active={page === "home"} onClick={() => setPage("home")} />
-            <NavButton label="Discover" active={page === "discover"} onClick={() => setPage("discover")} />
-            <NavButton label="Sessions" active={page === "sessions"} onClick={() => setPage("sessions")} />
-            <NavButton label="Book" active={page === "booking"} onClick={() => setPage("booking")} />
+            <NavButton
+              label="Home"
+              active={page === "home"}
+              onClick={() => setPage("home")}
+            />
+            <NavButton
+              label="Discover"
+              active={page === "discover"}
+              onClick={() => setPage("discover")}
+            />
+            <NavButton
+              label="Sessions"
+              active={page === "sessions"}
+              onClick={() => setPage("sessions")}
+            />
+            <NavButton
+              label="Book"
+              active={page === "booking"}
+              onClick={() => setPage("booking")}
+            />
           </div>
         </header>
 
