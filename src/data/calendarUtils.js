@@ -34,7 +34,11 @@ function eventsOverlap(startA, endA, startB, endB) {
   return startA < endB && endA > startB;
 }
 
-export function getAvailableSlotsForTutor({ tutorId, durationMinutes }) {
+export function getAvailableSlotsForTutor({
+  tutorId,
+  durationMinutes,
+  extraBookings = [],
+}) {
   const tutorAvailability = availabilityWindows.filter(
     (window) => window.tutorId === tutorId
   );
@@ -42,6 +46,7 @@ export function getAvailableSlotsForTutor({ tutorId, durationMinutes }) {
   const busyEvents = [
     ...blockedTimes,
     ...bookings,
+    ...extraBookings,
     ...advertisedSessions,
   ].filter((event) => event.tutorId === tutorId);
 

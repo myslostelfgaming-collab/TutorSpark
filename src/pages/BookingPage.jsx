@@ -10,9 +10,18 @@ import {
 import { tutors } from "../data/mockTutors";
 import { C, inputStyle } from "../data/theme";
 
-export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
+export default function BookingPage({
+  tutorId,
+  onSelectTutor,
+  setPage,
+  extraBookings,
+  onRequestBooking,
+}) {
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [learnerName, setLearnerName] = useState("");
+  const [topic, setTopic] = useState("");
+  const [notes, setNotes] = useState("");
 
   const tutor = tutors.find((item) => item.id === tutorId) ?? null;
 
@@ -28,11 +37,34 @@ export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
     return getAvailableSlotsForTutor({
       tutorId: tutor.id,
       durationMinutes: selectedSession.durationMinutes,
+      extraBookings,
     });
-  }, [tutor, selectedSession]);
+  }, [tutor, selectedSession, extraBookings]);
 
   const selectedSlot =
     availableSlots.find((slot) => slot.id === selectedSlotId) ?? null;
+
+  const canRequestBooking =
+    tutor && selectedSession && selectedSlot && learnerName.trim();
+
+  const handleRequestBooking = () => {
+    if (!canRequestBooking) return;
+
+    onRequestBooking({
+      tutorId: tutor.id,
+      sessionTypeId: selectedSession.id,
+      slot: selectedSlot,
+      learnerName,
+      topic,
+      notes,
+    });
+
+    setSelectedSessionId("");
+    setSelectedSlotId("");
+    setLearnerName("");
+    setTopic("");
+    setNotes("");
+  };
 
   useEffect(() => {
     setSelectedSessionId("");
@@ -305,9 +337,23 @@ export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
         )}
 
         <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
-          <input placeholder="Learner name" style={inputStyle} />
-          <input placeholder="Preferred subject/topic" style={inputStyle} />
+          <input
+            value={learnerName}
+            onChange={(event) => setLearnerName(event.target.value)}
+            placeholder="Learner name"
+            style={inputStyle}
+          />
+
+          <input
+            value={topic}
+            onChange={(event) => setTopic(event.target.value)}
+            placeholder="Preferred subject/topic"
+            style={inputStyle}
+          />
+
           <textarea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
             placeholder="Anything the tutor should know?"
             style={{
               ...inputStyle,
@@ -319,7 +365,8 @@ export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
           <button
-            disabled={!tutor || !selectedSession || !selectedSlot}
+            onClick={handleRequestBooking}
+            disabled={!canRequestBooking}
             style={{
               background: C.spark,
               color: "#000",
@@ -327,11 +374,8 @@ export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
               borderRadius: 12,
               padding: "12px 18px",
               fontWeight: 900,
-              cursor:
-                tutor && selectedSession && selectedSlot
-                  ? "pointer"
-                  : "not-allowed",
-              opacity: tutor && selectedSession && selectedSlot ? 1 : 0.45,
+              cursor: canRequestBooking ? "pointer" : "not-allowed",
+              opacity: canRequestBooking ? 1 : 0.45,
             }}
           >
             Request booking

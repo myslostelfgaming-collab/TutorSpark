@@ -7,9 +7,12 @@ import BookingPage from "./pages/BookingPage";
 import SessionsPage from "./pages/SessionsPage";
 import { C } from "./data/theme";
 
+const ACTIVE_STUDENT_ID = "student-1";
+
 function App() {
   const [page, setPage] = useState("home");
   const [selectedTutorId, setSelectedTutorId] = useState(null);
+  const [extraBookings, setExtraBookings] = useState([]);
 
   const viewTutor = (tutorId) => {
     setSelectedTutorId(tutorId);
@@ -19,6 +22,31 @@ function App() {
   const startBooking = (tutorId = null) => {
     setSelectedTutorId(tutorId);
     setPage("booking");
+  };
+
+  const requestBooking = ({
+    tutorId,
+    sessionTypeId,
+    slot,
+    learnerName,
+    topic,
+    notes,
+  }) => {
+    const newBooking = {
+      id: `booking-${Date.now()}`,
+      studentId: ACTIVE_STUDENT_ID,
+      tutorId,
+      sessionTypeId,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      status: "pending",
+      learnerName: learnerName.trim(),
+      topic: topic.trim(),
+      notes: notes.trim(),
+    };
+
+    setExtraBookings((currentBookings) => [newBooking, ...currentBookings]);
+    setPage("sessions");
   };
 
   const pages = {
@@ -41,9 +69,11 @@ function App() {
         tutorId={selectedTutorId}
         onSelectTutor={setSelectedTutorId}
         setPage={setPage}
+        extraBookings={extraBookings}
+        onRequestBooking={requestBooking}
       />
     ),
-    sessions: <SessionsPage />,
+    sessions: <SessionsPage extraBookings={extraBookings} />,
   };
 
   return (

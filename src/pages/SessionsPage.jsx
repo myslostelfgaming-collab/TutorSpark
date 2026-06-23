@@ -62,6 +62,7 @@ function TimetableEventCard({ event, currentUser }) {
   const isGroupSession = event.kind === "group";
   const isAvailability = event.kind === "availability";
   const isBlocked = event.kind === "blocked";
+  const isBooking = event.kind === "booking";
 
   return (
     <div
@@ -83,17 +84,27 @@ function TimetableEventCard({ event, currentUser }) {
         {getEventTitle(event, sessionType)}
       </div>
 
-      {currentUser.role === "student" && (
+      {currentUser.role === "student" && isBooking && (
         <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          {isGroupSession ? "Group class" : "1-on-1"} with {tutor?.name}
+          1-on-1 with {tutor?.name}
         </div>
       )}
 
-      {currentUser.role === "tutor" && !isAvailability && !isBlocked && (
+      {currentUser.role === "student" && isGroupSession && (
         <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
-          {isGroupSession
-            ? `${event.bookedStudentIds.length}/${event.capacity} learners booked`
-            : `Student: ${student?.name ?? "Unknown student"}`}
+          Group class with {tutor?.name}
+        </div>
+      )}
+
+      {currentUser.role === "tutor" && isBooking && (
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
+          Student: {student?.name ?? event.learnerName ?? "Unknown student"}
+        </div>
+      )}
+
+      {currentUser.role === "tutor" && isGroupSession && (
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
+          {event.bookedStudentIds.length}/{event.capacity} learners booked
         </div>
       )}
 
@@ -106,6 +117,12 @@ function TimetableEventCard({ event, currentUser }) {
       {isBlocked && (
         <div style={{ color: C.muted, fontSize: 13, marginTop: 4 }}>
           {event.reason}
+        </div>
+      )}
+
+      {event.topic && (
+        <div style={{ color: C.muted, fontSize: 13, marginTop: 6 }}>
+          Topic: {event.topic}
         </div>
       )}
 
@@ -128,15 +145,20 @@ function TimetableEventCard({ event, currentUser }) {
   );
 }
 
-export default function SessionsPage() {
+export default function SessionsPage({ extraBookings = [] }) {
   const [currentUserId, setCurrentUserId] = useState(defaultCurrentUserId);
   const [calendarView, setCalendarView] = useState("week");
 
   const currentUser = users.find((user) => user.id === currentUserId) ?? users[0];
 
+  const allBookings = useMemo(
+    () => [...bookings, ...extraBookings],
+    [extraBookings]
+  );
+
   const visibleEvents = useMemo(() => {
     if (currentUser.role === "student") {
-      const personalBookings = bookings
+      const personalBookings = allBookings
         .filter((booking) => booking.studentId === currentUser.id)
         .map((booking) => ({
           ...booking,
@@ -156,7 +178,7 @@ export default function SessionsPage() {
     }
 
     if (currentUser.role === "tutor") {
-      const tutorBookings = bookings
+      const tutorBookings = allBookings
         .filter((booking) => booking.tutorId === currentUser.tutorId)
         .map((booking) => ({
           ...booking,
@@ -193,7 +215,7 @@ export default function SessionsPage() {
     }
 
     return [];
-  }, [currentUser]);
+  }, [currentUser, allBookings]);
 
   return (
     <section>
@@ -403,4 +425,4 @@ export default function SessionsPage() {
       </div>
     </section>
   );
-} 
+}
