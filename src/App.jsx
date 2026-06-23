@@ -15,6 +15,7 @@ function App() {
   const [extraBookings, setExtraBookings] = useState([]);
   const [extraAvailabilityWindows, setExtraAvailabilityWindows] = useState([]);
   const [extraBlockedTimes, setExtraBlockedTimes] = useState([]);
+  const [extraAdvertisedSessions, setExtraAdvertisedSessions] = useState([]);
   const [bookingStatusOverrides, setBookingStatusOverrides] = useState({});
   const [currentUserId, setCurrentUserId] = useState(defaultCurrentUserId);
 
@@ -86,6 +87,13 @@ function App() {
     ]);
   };
 
+  const addAdvertisedSession = (advertisedSession) => {
+    setExtraAdvertisedSessions((currentSessions) => [
+      advertisedSession,
+      ...currentSessions,
+    ]);
+  };
+
   const pages = {
     home: (
       <HomePage
@@ -110,6 +118,7 @@ function App() {
         extraBookings={extraBookings}
         extraAvailabilityWindows={extraAvailabilityWindows}
         extraBlockedTimes={extraBlockedTimes}
+        extraAdvertisedSessions={extraAdvertisedSessions}
         bookingStatusOverrides={bookingStatusOverrides}
         onRequestBooking={requestBooking}
       />
@@ -120,10 +129,12 @@ function App() {
         extraBookings={extraBookings}
         extraAvailabilityWindows={extraAvailabilityWindows}
         extraBlockedTimes={extraBlockedTimes}
+        extraAdvertisedSessions={extraAdvertisedSessions}
         bookingStatusOverrides={bookingStatusOverrides}
         onUpdateBookingStatus={updateBookingStatus}
         onAddAvailabilityWindow={addAvailabilityWindow}
         onAddBlockedTime={addBlockedTime}
+        onAddAdvertisedSession={addAdvertisedSession}
       />
     ),
   };

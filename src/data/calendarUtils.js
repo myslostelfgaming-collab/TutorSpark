@@ -51,6 +51,7 @@ export function getAvailableSlotsForTutor({
   extraBookings = [],
   extraAvailabilityWindows = [],
   extraBlockedTimes = [],
+  extraAdvertisedSessions = [],
   bookingStatusOverrides = {},
 }) {
   const allAvailabilityWindows = [
@@ -59,6 +60,11 @@ export function getAvailableSlotsForTutor({
   ];
 
   const allBlockedTimes = [...blockedTimes, ...extraBlockedTimes];
+
+  const allAdvertisedSessions = [
+    ...advertisedSessions,
+    ...extraAdvertisedSessions,
+  ];
 
   const tutorAvailability = allAvailabilityWindows.filter(
     (window) => window.tutorId === tutorId
@@ -72,7 +78,7 @@ export function getAvailableSlotsForTutor({
   const busyEvents = [
     ...allBlockedTimes,
     ...allBookings,
-    ...advertisedSessions,
+    ...allAdvertisedSessions,
   ]
     .filter((event) => event.tutorId === tutorId)
     .filter(isBlockingEvent);

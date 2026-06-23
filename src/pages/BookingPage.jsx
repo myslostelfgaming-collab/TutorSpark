@@ -16,6 +16,7 @@ export default function BookingPage({
   extraBookings = [],
   extraAvailabilityWindows = [],
   extraBlockedTimes = [],
+  extraAdvertisedSessions = [],
   bookingStatusOverrides = {},
   onRequestBooking,
 }) {
@@ -43,6 +44,7 @@ export default function BookingPage({
       extraBookings,
       extraAvailabilityWindows,
       extraBlockedTimes,
+      extraAdvertisedSessions,
       bookingStatusOverrides,
     });
   }, [
@@ -51,6 +53,7 @@ export default function BookingPage({
     extraBookings,
     extraAvailabilityWindows,
     extraBlockedTimes,
+    extraAdvertisedSessions,
     bookingStatusOverrides,
   ]);
 

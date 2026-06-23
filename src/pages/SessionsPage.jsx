@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import CalendarViewToggle from "../components/CalendarViewToggle";
 import TutorCalendarEditor from "../components/TutorCalendarEditor";
+import TutorGroupClassCreator from "../components/TutorGroupClassCreator";
 import WeekCalendar from "../components/WeekCalendar";
 import { bookings, advertisedSessions } from "../data/mockBookings";
 import { availabilityWindows, blockedTimes } from "../data/mockCalendar";
@@ -21,10 +22,12 @@ export default function SessionsPage({
   extraBookings = [],
   extraAvailabilityWindows = [],
   extraBlockedTimes = [],
+  extraAdvertisedSessions = [],
   bookingStatusOverrides = {},
   onUpdateBookingStatus,
   onAddAvailabilityWindow,
   onAddBlockedTime,
+  onAddAdvertisedSession,
 }) {
   const [calendarView, setCalendarView] = useState("week");
 
@@ -47,6 +50,11 @@ export default function SessionsPage({
     [extraBlockedTimes]
   );
 
+  const allAdvertisedSessions = useMemo(
+    () => [...advertisedSessions, ...extraAdvertisedSessions],
+    [extraAdvertisedSessions]
+  );
+
   const visibleEvents = useMemo(() => {
     if (currentUser.role === "student") {
       const personalBookings = allBookings
@@ -56,7 +64,7 @@ export default function SessionsPage({
           kind: "booking",
         }));
 
-      const bookedGroupSessions = advertisedSessions
+      const bookedGroupSessions = allAdvertisedSessions
         .filter((session) => session.bookedStudentIds.includes(currentUser.id))
         .map((session) => ({
           ...session,
@@ -76,7 +84,7 @@ export default function SessionsPage({
           kind: "booking",
         }));
 
-      const tutorGroupSessions = advertisedSessions
+      const tutorGroupSessions = allAdvertisedSessions
         .filter((session) => session.tutorId === currentUser.tutorId)
         .map((session) => ({
           ...session,
@@ -106,7 +114,13 @@ export default function SessionsPage({
     }
 
     return [];
-  }, [currentUser, allBookings, allAvailabilityWindows, allBlockedTimes]);
+  }, [
+    currentUser,
+    allBookings,
+    allAvailabilityWindows,
+    allBlockedTimes,
+    allAdvertisedSessions,
+  ]);
 
   return (
     <section>
@@ -165,11 +179,18 @@ export default function SessionsPage({
       </div>
 
       {currentUser.role === "tutor" && (
-        <TutorCalendarEditor
-          currentUser={currentUser}
-          onAddAvailabilityWindow={onAddAvailabilityWindow}
-          onAddBlockedTime={onAddBlockedTime}
-        />
+        <>
+          <TutorCalendarEditor
+            currentUser={currentUser}
+            onAddAvailabilityWindow={onAddAvailabilityWindow}
+            onAddBlockedTime={onAddBlockedTime}
+          />
+
+          <TutorGroupClassCreator
+            currentUser={currentUser}
+            onAddAdvertisedSession={onAddAdvertisedSession}
+          />
+        </>
       )}
 
       <div
