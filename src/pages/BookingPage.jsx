@@ -1,15 +1,11 @@
 import Avatar from "../components/Avatar";
 import Pill from "../components/Pill";
+import TutorPicker from "../components/TutorPicker";
 import { tutors } from "../data/mockTutors";
 import { C, inputStyle } from "../data/theme";
 
 export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
   const tutor = tutors.find((item) => item.id === tutorId) ?? null;
-
-  const handleTutorChange = (event) => {
-    const value = event.target.value;
-    onSelectTutor(value ? Number(value) : null);
-  };
 
   return (
     <section>
@@ -41,33 +37,11 @@ export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
         }}
       >
         <div style={{ marginBottom: 18 }}>
-          <label
-            style={{
-              display: "block",
-              color: C.white,
-              fontWeight: 900,
-              marginBottom: 8,
-            }}
-          >
-            Choose a tutor
-          </label>
-
-          <select
-            value={tutor?.id ?? ""}
-            onChange={handleTutorChange}
-            style={{
-              ...inputStyle,
-              width: "100%",
-              cursor: "pointer",
-            }}
-          >
-            <option value="">Select a tutor...</option>
-            {tutors.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} — {item.subjects.join(", ")}
-              </option>
-            ))}
-          </select>
+          <TutorPicker
+            tutors={tutors}
+            selectedTutorId={tutorId}
+            onSelectTutor={onSelectTutor}
+          />
         </div>
 
         {tutor ? (
@@ -103,8 +77,8 @@ export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
               lineHeight: 1.6,
             }}
           >
-            No tutor selected yet. Choose a tutor above, or browse tutor profiles
-            first if you want more detail before booking.
+            No tutor selected yet. Search above or browse tutor profiles first if
+            you want more detail before booking.
           </div>
         )}
 
