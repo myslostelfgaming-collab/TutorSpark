@@ -1,6 +1,6 @@
 import { C } from "../data/theme";
 
-export default function HomePage({ setPage }) {
+export default function HomePage({ setPage, onStartBooking }) {
   return (
     <section>
       <div style={{ marginBottom: 28 }}>
@@ -64,7 +64,7 @@ export default function HomePage({ setPage }) {
           </button>
 
           <button
-            onClick={() => setPage("booking")}
+            onClick={onStartBooking}
             style={{
               background: C.card,
               color: C.text,

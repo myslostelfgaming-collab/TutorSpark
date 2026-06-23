@@ -9,25 +9,37 @@ import { C } from "./data/theme";
 
 function App() {
   const [page, setPage] = useState("home");
-  const [selectedTutorId, setSelectedTutorId] = useState(1);
+  const [selectedTutorId, setSelectedTutorId] = useState(null);
 
   const viewTutor = (tutorId) => {
     setSelectedTutorId(tutorId);
     setPage("profile");
   };
 
+  const startBooking = (tutorId = null) => {
+    setSelectedTutorId(tutorId);
+    setPage("booking");
+  };
+
   const pages = {
-    home: <HomePage setPage={setPage} />,
+    home: (
+      <HomePage
+        setPage={setPage}
+        onStartBooking={() => startBooking(null)}
+      />
+    ),
     discover: <DiscoverPage onViewTutor={viewTutor} />,
     profile: (
       <TutorProfilePage
         tutorId={selectedTutorId}
         setPage={setPage}
+        onBookTutor={startBooking}
       />
     ),
     booking: (
       <BookingPage
         tutorId={selectedTutorId}
+        onSelectTutor={setSelectedTutorId}
         setPage={setPage}
       />
     ),
@@ -88,7 +100,7 @@ function App() {
             <NavButton
               label="Book"
               active={page === "booking"}
-              onClick={() => setPage("booking")}
+              onClick={() => startBooking(null)}
             />
           </div>
         </header>

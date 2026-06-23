@@ -3,13 +3,18 @@ import Pill from "../components/Pill";
 import { tutors } from "../data/mockTutors";
 import { C, inputStyle } from "../data/theme";
 
-export default function BookingPage({ tutorId, setPage }) {
-  const tutor = tutors.find((item) => item.id === tutorId) ?? tutors[0];
+export default function BookingPage({ tutorId, onSelectTutor, setPage }) {
+  const tutor = tutors.find((item) => item.id === tutorId) ?? null;
+
+  const handleTutorChange = (event) => {
+    const value = event.target.value;
+    onSelectTutor(value ? Number(value) : null);
+  };
 
   return (
     <section>
       <button
-        onClick={() => setPage("profile")}
+        onClick={() => (tutor ? setPage("profile") : setPage("home"))}
         style={{
           background: "transparent",
           border: `1px solid ${C.border}`,
@@ -21,7 +26,7 @@ export default function BookingPage({ tutorId, setPage }) {
           marginBottom: 16,
         }}
       >
-        ← Back to tutor profile
+        {tutor ? "← Back to tutor profile" : "← Back to home"}
       </button>
 
       <h1 style={{ color: C.white, marginTop: 0 }}>Book a Session</h1>
@@ -35,25 +40,73 @@ export default function BookingPage({ tutorId, setPage }) {
           maxWidth: 680,
         }}
       >
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <Avatar initials={tutor.initials} color={tutor.color} />
+        <div style={{ marginBottom: 18 }}>
+          <label
+            style={{
+              display: "block",
+              color: C.white,
+              fontWeight: 900,
+              marginBottom: 8,
+            }}
+          >
+            Choose a tutor
+          </label>
 
-          <div>
-            <div style={{ color: C.muted, fontSize: 13, fontWeight: 700 }}>
-              Booking with
+          <select
+            value={tutor?.id ?? ""}
+            onChange={handleTutorChange}
+            style={{
+              ...inputStyle,
+              width: "100%",
+              cursor: "pointer",
+            }}
+          >
+            <option value="">Select a tutor...</option>
+            {tutors.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} — {item.subjects.join(", ")}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {tutor ? (
+          <>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              <Avatar initials={tutor.initials} color={tutor.color} />
+
+              <div>
+                <div style={{ color: C.muted, fontSize: 13, fontWeight: 700 }}>
+                  Booking with
+                </div>
+                <h2 style={{ margin: 0, color: C.white }}>{tutor.name}</h2>
+                <div style={{ color: C.muted, fontSize: 13 }}>
+                  {tutor.grades} · {tutor.location}
+                </div>
+              </div>
             </div>
-            <h2 style={{ margin: 0, color: C.white }}>{tutor.name}</h2>
-            <div style={{ color: C.muted, fontSize: 13 }}>
-              {tutor.grades} · {tutor.location}
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+              {tutor.subjects.map((subject) => (
+                <Pill key={subject}>{subject}</Pill>
+              ))}
             </div>
+          </>
+        ) : (
+          <div
+            style={{
+              background: C.surface,
+              border: `1px dashed ${C.border}`,
+              borderRadius: 14,
+              padding: 16,
+              color: C.muted,
+              lineHeight: 1.6,
+            }}
+          >
+            No tutor selected yet. Choose a tutor above, or browse tutor profiles
+            first if you want more detail before booking.
           </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
-          {tutor.subjects.map((subject) => (
-            <Pill key={subject}>{subject}</Pill>
-          ))}
-        </div>
+        )}
 
         <div
           style={{
@@ -89,6 +142,7 @@ export default function BookingPage({ tutorId, setPage }) {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
           <button
+            disabled={!tutor}
             style={{
               background: C.spark,
               color: "#000",
@@ -96,7 +150,8 @@ export default function BookingPage({ tutorId, setPage }) {
               borderRadius: 12,
               padding: "12px 18px",
               fontWeight: 900,
-              cursor: "pointer",
+              cursor: tutor ? "pointer" : "not-allowed",
+              opacity: tutor ? 1 : 0.45,
             }}
           >
             Request booking
@@ -114,7 +169,7 @@ export default function BookingPage({ tutorId, setPage }) {
               cursor: "pointer",
             }}
           >
-            Choose another tutor
+            Browse tutors
           </button>
         </div>
       </div>
