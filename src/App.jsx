@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CurrentUserSwitcher from "./components/CurrentUserSwitcher";
 import NavButton from "./components/NavButton";
 import HomePage from "./pages/HomePage";
@@ -9,17 +9,61 @@ import SessionsPage from "./pages/SessionsPage";
 import { C } from "./data/theme";
 import { defaultCurrentUserId, users } from "./data/mockUsers";
 
+const BUZA_STORAGE_KEY = "buza-demo-state-v1";
+
+const initialDemoState = {
+  extraBookings: [],
+  extraAvailabilityWindows: [],
+  extraBlockedTimes: [],
+  extraAdvertisedSessions: [],
+  advertisedSessionBookingOverrides: {},
+  bookingStatusOverrides: {},
+};
+
+function loadDemoState() {
+  try {
+    const savedState = localStorage.getItem(BUZA_STORAGE_KEY);
+
+    if (!savedState) {
+      return initialDemoState;
+    }
+
+    return {
+      ...initialDemoState,
+      ...JSON.parse(savedState),
+    };
+  } catch (error) {
+    console.warn("Could not load BUZA demo state:", error);
+    return initialDemoState;
+  }
+}
+
+function saveDemoState(demoState) {
+  try {
+    localStorage.setItem(BUZA_STORAGE_KEY, JSON.stringify(demoState));
+  } catch (error) {
+    console.warn("Could not save BUZA demo state:", error);
+  }
+}
+
 function App() {
   const [page, setPage] = useState("home");
   const [selectedTutorId, setSelectedTutorId] = useState(null);
-  const [extraBookings, setExtraBookings] = useState([]);
-  const [extraAvailabilityWindows, setExtraAvailabilityWindows] = useState([]);
-  const [extraBlockedTimes, setExtraBlockedTimes] = useState([]);
-  const [extraAdvertisedSessions, setExtraAdvertisedSessions] = useState([]);
-  const [advertisedSessionBookingOverrides, setAdvertisedSessionBookingOverrides] =
-    useState({});
-  const [bookingStatusOverrides, setBookingStatusOverrides] = useState({});
+  const [demoState, setDemoState] = useState(loadDemoState);
   const [currentUserId, setCurrentUserId] = useState(defaultCurrentUserId);
+
+  const {
+    extraBookings,
+    extraAvailabilityWindows,
+    extraBlockedTimes,
+    extraAdvertisedSessions,
+    advertisedSessionBookingOverrides,
+    bookingStatusOverrides,
+  } = demoState;
+
+  useEffect(() => {
+    saveDemoState(demoState);
+  }, [demoState]);
 
   const currentUser =
     users.find((user) => user.id === currentUserId) ?? users[0];
@@ -32,6 +76,11 @@ function App() {
   const startBooking = (tutorId = null) => {
     setSelectedTutorId(tutorId);
     setPage("booking");
+  };
+
+  const resetDemoData = () => {
+    localStorage.removeItem(BUZA_STORAGE_KEY);
+    setDemoState(initialDemoState);
   };
 
   const requestBooking = ({
@@ -58,7 +107,11 @@ function App() {
       notes: notes.trim(),
     };
 
-    setExtraBookings((currentBookings) => [newBooking, ...currentBookings]);
+    setDemoState((currentState) => ({
+      ...currentState,
+      extraBookings: [newBooking, ...currentState.extraBookings],
+    }));
+
     setPage("sessions");
   };
 
@@ -67,37 +120,44 @@ function App() {
       return;
     }
 
-    setExtraAdvertisedSessions((currentSessions) =>
-      currentSessions.map((session) => {
-        if (session.id !== sessionId) {
-          return session;
-        }
+    setDemoState((currentState) => {
+      const updatedExtraAdvertisedSessions =
+        currentState.extraAdvertisedSessions.map((session) => {
+          if (session.id !== sessionId) {
+            return session;
+          }
 
-        if (session.bookedStudentIds.includes(currentUser.id)) {
-          return session;
-        }
+          if (session.bookedStudentIds.includes(currentUser.id)) {
+            return session;
+          }
 
-        if (session.bookedStudentIds.length >= session.capacity) {
-          return session;
-        }
+          if (session.bookedStudentIds.length >= session.capacity) {
+            return session;
+          }
 
-        return {
-          ...session,
-          bookedStudentIds: [...session.bookedStudentIds, currentUser.id],
-        };
-      })
-    );
+          return {
+            ...session,
+            bookedStudentIds: [...session.bookedStudentIds, currentUser.id],
+          };
+        });
 
-    setAdvertisedSessionBookingOverrides((currentOverrides) => {
-      const currentStudentIds = currentOverrides[sessionId] ?? [];
+      const currentStudentIds =
+        currentState.advertisedSessionBookingOverrides[sessionId] ?? [];
 
       if (currentStudentIds.includes(currentUser.id)) {
-        return currentOverrides;
+        return {
+          ...currentState,
+          extraAdvertisedSessions: updatedExtraAdvertisedSessions,
+        };
       }
 
       return {
-        ...currentOverrides,
-        [sessionId]: [...currentStudentIds, currentUser.id],
+        ...currentState,
+        extraAdvertisedSessions: updatedExtraAdvertisedSessions,
+        advertisedSessionBookingOverrides: {
+          ...currentState.advertisedSessionBookingOverrides,
+          [sessionId]: [...currentStudentIds, currentUser.id],
+        },
       };
     });
 
@@ -105,43 +165,52 @@ function App() {
   };
 
   const updateBookingStatus = (bookingId, status) => {
-    setExtraBookings((currentBookings) =>
-      currentBookings.map((booking) =>
+    setDemoState((currentState) => ({
+      ...currentState,
+      extraBookings: currentState.extraBookings.map((booking) =>
         booking.id === bookingId ? { ...booking, status } : booking
-      )
-    );
-
-    setBookingStatusOverrides((currentOverrides) => ({
-      ...currentOverrides,
-      [bookingId]: status,
+      ),
+      bookingStatusOverrides: {
+        ...currentState.bookingStatusOverrides,
+        [bookingId]: status,
+      },
     }));
   };
 
   const addAvailabilityWindow = (availabilityWindow) => {
-    setExtraAvailabilityWindows((currentWindows) => [
-      availabilityWindow,
-      ...currentWindows,
-    ]);
+    setDemoState((currentState) => ({
+      ...currentState,
+      extraAvailabilityWindows: [
+        availabilityWindow,
+        ...currentState.extraAvailabilityWindows,
+      ],
+    }));
   };
 
   const addBlockedTime = (blockedTime) => {
-    setExtraBlockedTimes((currentBlockedTimes) => [
-      blockedTime,
-      ...currentBlockedTimes,
-    ]);
+    setDemoState((currentState) => ({
+      ...currentState,
+      extraBlockedTimes: [blockedTime, ...currentState.extraBlockedTimes],
+    }));
   };
 
   const addAdvertisedSession = (advertisedSession) => {
-    setExtraAdvertisedSessions((currentSessions) => [
-      advertisedSession,
-      ...currentSessions,
-    ]);
+    setDemoState((currentState) => ({
+      ...currentState,
+      extraAdvertisedSessions: [
+        advertisedSession,
+        ...currentState.extraAdvertisedSessions,
+      ],
+    }));
   };
 
   const removeAdvertisedSession = (sessionId) => {
-    setExtraAdvertisedSessions((currentSessions) =>
-      currentSessions.filter((session) => session.id !== sessionId)
-    );
+    setDemoState((currentState) => ({
+      ...currentState,
+      extraAdvertisedSessions: currentState.extraAdvertisedSessions.filter(
+        (session) => session.id !== sessionId
+      ),
+    }));
   };
 
   const pages = {
@@ -261,6 +330,11 @@ function App() {
                 label="Book"
                 active={page === "booking"}
                 onClick={() => startBooking(null)}
+              />
+              <NavButton
+                label="Reset demo data"
+                active={false}
+                onClick={resetDemoData}
               />
             </div>
           </div>
